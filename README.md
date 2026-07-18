@@ -44,6 +44,12 @@ git push -u origin main
 Then in the repo: **Settings → Pages → Source → Deploy from branch → main → / (root)**.
 Your app will be live at `https://<your-username>.github.io/aqi-tracker/`.
 
+**After deploying, update the placeholder domain** (`YOUR-USERNAME.github.io/aqi-tracker`)
+in these spots so SEO/social previews point to your real URL:
+- `index.html` — `<link rel="canonical">`, `og:image`, `og:url`, `twitter:image`
+- `robots.txt` — `Sitemap:` line
+- `sitemap.xml` — `<loc>`
+
 > ⚠️ Your WAQI token will be visible in the public JS file on GitHub Pages.
 > WAQI's free tier is meant for exactly this (client-side, low-volume use)
 > and tokens are free/disposable, so this is fine for a personal project.
@@ -54,9 +60,19 @@ Your app will be live at `https://<your-username>.github.io/aqi-tracker/`.
 
 ```
 aqi-tracker/
-├── index.html    # Structure: header, gauge hero, pollutant grid, trend, saved stations
-├── style.css     # "Open Sky" design system (tokens, gauge, cards, responsive)
-├── script.js     # API calls, gauge rendering, saved stations, Chart.js trend
+├── index.html         # Structure + SEO meta tags, Open Graph, JSON-LD
+├── style.css          # "Open Sky" design system (tokens, gauge, cards, responsive)
+├── script.js          # API calls, gauge rendering, saved stations, Chart.js trend
+├── manifest.json      # Web app manifest (installable, icons)
+├── robots.txt         # Crawler rules + sitemap pointer
+├── sitemap.xml        # Single-page sitemap
+├── assets/
+│   ├── favicon.svg           # Crisp logo shown in the browser tab (modern browsers)
+│   ├── favicon.ico           # Legacy multi-resolution favicon
+│   ├── favicon-16.png, favicon-32.png
+│   ├── apple-touch-icon.png  # iOS home-screen icon
+│   ├── icon-192.png, icon-512.png  # PWA/manifest icons
+│   └── og-image.png          # Social share preview (WhatsApp, Twitter, etc.)
 └── README.md
 ```
 
@@ -66,10 +82,8 @@ aqi-tracker/
   saved cities follow you across devices (you already use this pattern in SalaryOS).
 - **Push alerts**: Firebase Cloud Messaging notification when a saved city's AQI
   crosses "Unhealthy" — check hourly via a scheduled Cloud Function.
-- **PWA**: add a manifest + service worker to cache the shell and last-known
-  readings for offline access.
-- **India map view**: plot saved/major Indian cities as colored dots on an SVG
-  map of India instead of a card list.
+- **Offline caching**: add a service worker to cache the shell and last-known
+  readings for offline access (the manifest is already in place for this).
 
 ## Data source
 
