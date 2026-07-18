@@ -1,0 +1,731 @@
+/* ============================================================
+   STATION/AQI — "Open Sky" Design System
+   Bright, airy, alive — the dashboard feels like the weather it reports.
+   ============================================================ */
+
+:root {
+  /* -- Surface palette: daylight sky -- */
+  --bg-top: #EAF4FF;
+  --bg-mid: #F5FAFF;
+  --bg-card: #FFFFFF;
+  --line: #E3EBF3;
+  --line-bright: #C4D6E8;
+  --shadow-color: 214, 60%, 70%;
+
+  /* -- Text -- */
+  --text-primary: #16202C;
+  --text-muted: #5C7186;
+  --text-faint: #9AACBE;
+
+  /* -- Brand accent: sky blue → fresh teal -- */
+  --accent: #2E90FA;
+  --accent-2: #17B199;
+  --accent-grad: linear-gradient(135deg, #2E90FA 0%, #17B199 100%);
+  --accent-dim: rgba(46, 144, 250, 0.10);
+  --accent-line: rgba(46, 144, 250, 0.35);
+
+  /* -- Warm secondary accent (CTA pop, saved badge) -- */
+  --coral: #FF6B57;
+
+  /* -- AQI functional zone colors (WHO / US-EPA scale) -- */
+  --aqi-good: #22C55E;
+  --aqi-moderate: #EAB308;
+  --aqi-sensitive: #F97316;
+  --aqi-unhealthy: #EF4444;
+  --aqi-very-unhealthy: #A855F7;
+  --aqi-hazardous: #9F1239;
+
+  /* reactive glow behind the gauge — set by JS to match current AQI zone */
+  --zone-glow: #2E90FA;
+
+  /* -- Type -- */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 45%, #FFFFFF 100%);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ---- soft floating atmosphere blobs (replaces old dark grid) ---- */
+.atmosphere-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+}
+.blob-a {
+  width: 480px; height: 480px;
+  top: -140px; left: -120px;
+  background: radial-gradient(circle, #BFE3FF 0%, transparent 70%);
+}
+.blob-b {
+  width: 420px; height: 420px;
+  top: 120px; right: -160px;
+  background: radial-gradient(circle, #C8F5E6 0%, transparent 70%);
+}
+
+a { color: var(--accent); }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.site-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px clamp(20px, 5vw, 56px);
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--accent-grad);
+  box-shadow: 0 6px 16px -4px hsla(var(--shadow-color), 0.55);
+  flex-shrink: 0;
+}
+
+.brand-text h1 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+.brand-accent {
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-sub {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.search-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1 1 420px;
+  max-width: 640px;
+}
+
+#cityInput {
+  flex: 1 1 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 13px 20px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  box-shadow: 0 2px 8px -2px hsla(var(--shadow-color), 0.12);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#cityInput::placeholder { color: var(--text-faint); }
+#cityInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-dim);
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 13px 22px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:active { transform: translateY(1px) scale(0.98); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.btn-primary {
+  background: var(--accent-grad);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 8px 18px -6px hsla(var(--shadow-color), 0.6);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -6px hsla(var(--shadow-color), 0.7); }
+
+.btn-ghost {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border-color: var(--line);
+}
+.btn-ghost:hover { color: var(--accent); border-color: var(--accent-line); }
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border-color: var(--line);
+  box-shadow: 0 2px 8px -2px hsla(var(--shadow-color), 0.12);
+}
+.btn-secondary:hover { border-color: var(--accent-line); color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.btn-danger:hover { color: var(--aqi-unhealthy); }
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px clamp(20px, 5vw, 56px) 80px;
+}
+
+.status-line {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  min-height: 1.2em;
+  margin-bottom: 18px;
+}
+.status-line.is-error { color: var(--aqi-unhealthy); font-weight: 500; }
+
+/* ============================================================
+   HERO PANEL (gauge + station info)
+   ============================================================ */
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: clamp(28px, 4vw, 48px);
+  margin-bottom: 32px;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 20px 44px -20px hsla(var(--shadow-color), 0.25);
+}
+
+/* the gauge glows softly in the color of the current AQI zone */
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 22% 35%, var(--zone-glow) 0%, transparent 55%);
+  opacity: 0.14;
+  transition: background 0.6s ease;
+  pointer-events: none;
+}
+
+.hero-empty { position: relative; }
+.hero-empty h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  max-width: 34ch;
+  margin: 0;
+}
+
+.hero-content {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(240px, 340px) 1fr;
+  gap: 40px;
+  align-items: center;
+  width: 100%;
+}
+
+.gauge-block { position: relative; text-align: center; }
+
+.gauge-svg { width: 100%; max-width: 340px; height: auto; }
+
+.zone-arc { fill: none; stroke-linecap: round; }
+.tick-line { stroke: var(--bg-card); stroke-width: 2; }
+
+.needle-line {
+  stroke: var(--text-primary);
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 4px rgba(22,32,44,0.25));
+}
+.needle-hub { fill: var(--bg-card); stroke: var(--text-primary); stroke-width: 3; }
+#gaugeNeedle { transition: transform 0.9s cubic-bezier(0.34, 1.2, 0.4, 1); }
+
+.gauge-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -34px;
+}
+.gauge-value {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.gauge-unit {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+.gauge-label {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--bg-mid);
+}
+
+.station-info { position: relative; }
+
+/* ---- mascot: a friendly cloud whose face reacts to the AQI ---- */
+.mascot-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.mascot {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  animation: mascot-breathe 3.2s ease-in-out infinite;
+}
+.mascot circle, .mascot ellipse { transition: fill 0.5s ease; }
+#mascotBody, #mascotPuff1, #mascotPuff2, #mascotPuff3 { fill: var(--accent); }
+#eyeL, #eyeR { fill: #16202C; }
+@keyframes mascot-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+.speech-bubble {
+  position: relative;
+  background: var(--bg-mid);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px 16px;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  max-width: 34ch;
+}
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: var(--bg-mid);
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.station-info h2 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.station-meta {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+/* ---- suggestion chips when multiple nearby stations match ---- */
+.suggestions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.suggestions-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+.suggestion-chip {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  background: var(--bg-mid);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.suggestion-chip:hover { border-color: var(--accent-line); color: var(--accent); }
+
+.advisory {
+  font-size: 0.98rem;
+  color: var(--text-primary);
+  background: var(--bg-mid);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  border-radius: 0 12px 12px 0;
+  margin: 0 0 22px;
+}
+
+/* ============================================================
+   INDIA STATIONS MAP
+   ============================================================ */
+.india-map-section { margin-bottom: 32px; }
+
+.map-intro {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+  max-width: 74ch;
+  margin: 0 0 18px;
+}
+
+.india-map-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 20px 44px -24px hsla(var(--shadow-color), 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.india-map-svg {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+}
+
+.india-outline {
+  fill: var(--bg-mid);
+  stroke: var(--line-bright);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.map-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  fill: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.station-dot {
+  cursor: pointer;
+  stroke: #FFFFFF;
+  stroke-width: 1.2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.15s ease, stroke-width 0.15s ease;
+}
+.station-dot:hover {
+  transform: scale(1.8);
+  stroke-width: 2;
+}
+
+.map-status {
+  margin: 14px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.map-caption {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+/* ============================================================
+   AQI 101 GUIDE
+   ============================================================ */
+.aqi-guide {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 6px 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 12px 28px -20px hsla(var(--shadow-color), 0.3);
+}
+.aqi-guide summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+.aqi-guide summary::-webkit-details-marker { display: none; }
+.aqi-guide summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--accent);
+  transition: transform 0.2s ease;
+}
+.aqi-guide[open] summary::before { transform: rotate(90deg); }
+
+.aqi-guide-body { padding: 0 0 22px; }
+.aqi-guide-intro {
+  font-size: 0.94rem;
+  color: var(--text-muted);
+  max-width: 68ch;
+  margin: 0 0 18px;
+}
+
+.aqi-scale-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.guide-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--bg-mid);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.guide-chip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.guide-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.86rem;
+  margin: 0 0 3px;
+}
+.guide-range {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+.guide-plain {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ============================================================
+   POLLUTANT GRID
+   ============================================================ */
+.pollutant-section { margin-bottom: 32px; }
+
+.pollutant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.pollutant-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pollutant-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -14px hsla(var(--shadow-color), 0.35);
+}
+.pollutant-name {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.pollutant-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.pollutant-value span { font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); font-weight: 400; }
+.pollutant-bar {
+  margin-top: 10px;
+  height: 5px;
+  background: var(--bg-mid);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pollutant-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.pollutant-plain {
+  margin: 10px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   TREND CHART
+   ============================================================ */
+.trend-section { margin-bottom: 32px; }
+.trend-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 26px;
+  box-shadow: 0 16px 36px -22px hsla(var(--shadow-color), 0.25);
+}
+
+/* ============================================================
+   SAVED STATIONS
+   ============================================================ */
+.saved-section { margin-bottom: 20px; }
+
+.saved-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.saved-empty {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  grid-column: 1 / -1;
+}
+
+.saved-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.saved-card:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -16px hsla(var(--shadow-color), 0.35);
+}
+
+.saved-card-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.saved-card-meta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.saved-card-badge {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--bg-mid);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.site-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 720px) {
+  .hero-content { grid-template-columns: 1fr; text-align: center; }
+  .station-info { display: flex; flex-direction: column; align-items: center; }
+  .mascot-row { flex-direction: column; }
+  .speech-bubble::before { display: none; }
+  .advisory { text-align: left; }
+  .search-form { width: 100%; }
+  .atmosphere-blob { display: none; }
+  .india-map-svg { max-width: 300px; }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  #gaugeNeedle { transition: none; }
+  .mascot { animation: none; }
+  html { scroll-behavior: auto; }
+}
